@@ -15,7 +15,7 @@ import java.util.List;
 public class Main {
 
 
-    private static final String PATIENT_NAME = "SharmaCC";
+    private static final String PATIENT_NAME = "SharmaTest";
     private static final String PATIENT_AGE = "31";
     private static final String PATIENT_PH_NO = "9876543212";
     private static final long WAIT_SECONDS = 30;
@@ -33,6 +33,7 @@ public class Main {
         // Initialize WebDriver
         ChromeDriver driver = new ChromeDriver();
         driver.get("http://18.215.63.38:8095/#/auth/login");
+        driver.manage().window().maximize();
 
         // Open Google
 
@@ -43,25 +44,11 @@ public class Main {
 
         locationSelected(driver);
 
+
         Thread.sleep(THREAD_SECONDS);
 
         System.out.println("Logging in...");
 
-        patientRegister(driver);
-
-
-        try {
-            Thread.sleep(10000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-        createAppointment(driver);
-
-
-        checkingAppoinment(driver);
-
-        addPrescription(driver);
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(WAIT_SECONDS));
 
         boolean isWelcomeFound = false;
@@ -84,18 +71,44 @@ public class Main {
             }
 
             attempts++;
-            Thread.sleep(3000); // Wait for 3 seconds before retrying
+            Thread.sleep(THREAD_SECONDS); // Wait for 3 seconds before retrying
         } while (!isWelcomeFound && attempts < maxAttempts);
 
-
         if (isWelcomeFound) {
+            patientRegister(driver);
+
+            try {
+                Thread.sleep(THREAD_SECONDS);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+
+            createAppointment(driver);
+            try {
+                Thread.sleep(THREAD_SECONDS);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+
+            checkingAppoinment(driver);
+            try {
+                Thread.sleep(THREAD_SECONDS);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            addPrescription(driver);
+            try {
+                Thread.sleep(THREAD_SECONDS);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
             pharmacyBill(driver);
         }
     }
 
     private static void pharmacyBill(ChromeDriver driver) throws InterruptedException {
         try {
-            Thread.sleep(4000);
+            Thread.sleep(THREAD_SECONDS);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -137,6 +150,11 @@ public class Main {
 
         System.out.println("Bill button clicked successfully for patient SharmaA.");
 
+        try {
+            Thread.sleep(THREAD_SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
 
         // Wait for the "Generate Bill" button to be present
         WebElement generateBillButton = wait.until(ExpectedConditions.presenceOfElementLocated(
@@ -148,6 +166,11 @@ public class Main {
 
         System.out.println("Generate Bill button clicked successfully.");
 
+        try {
+            Thread.sleep(THREAD_SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
 
         WebElement payButton = wait.until(ExpectedConditions.elementToBeClickable(
                 By.xpath("//button[contains(text(),'Pay')]")
@@ -155,7 +178,7 @@ public class Main {
 
 // Scroll to the button (if needed)
         ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", payButton);
-        Thread.sleep(1000); // Small delay to ensure visibility
+        Thread.sleep(THREAD_SECONDS); // Small delay to ensure visibility
 
 // Click the button
         payButton.click();
@@ -206,14 +229,14 @@ public class Main {
             WebElement dropdownIcon = row.findElement(By.xpath(".//span[contains(@class,'ti-angle-double-down')]"));
             wait.until(ExpectedConditions.elementToBeClickable(dropdownIcon)).click();
             System.out.println("Dropdown icon clicked successfully.");
-            Thread.sleep(2000); // Ensure dropdown loads
+            Thread.sleep(THREAD_SECONDS); // Ensure dropdown loads
 
 // Step 3: Now locate "Prescription" inside the SAME ROW
             WebElement prescriptionOption = row.findElement(By.xpath(".//span[contains(text(),'Prescription')]"));
             wait.until(ExpectedConditions.elementToBeClickable(prescriptionOption)).click();
             System.out.println("Clicked on 'Prescription' successfully!");
 
-            Thread.sleep(2000);
+            Thread.sleep(THREAD_SECONDS);
             WebElement addButton = wait.until(ExpectedConditions.elementToBeClickable(
                     By.id("current-admission-prescribedAdd")
             ));
@@ -228,7 +251,7 @@ public class Main {
             medicineInput.sendKeys("Sulphasala");
 
 // Wait for the autocomplete options to load
-            Thread.sleep(2000); // Adjust if necessary
+            Thread.sleep(THREAD_SECONDS); // Adjust if necessary
 
 // Select the correct option from the dropdown
             WebElement selectedOption = wait.until(ExpectedConditions.elementToBeClickable(
