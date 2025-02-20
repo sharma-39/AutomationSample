@@ -8,6 +8,8 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
+import java.awt.*;
+import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -75,7 +77,7 @@ public class Main {
             JSONArray patients = new JSONArray(jsonData);
 
 
-            for (int i = 19; i < patients.length(); i++) {
+            for (int i = 27; i < patients.length(); i++) {
                 try {
                     Thread.sleep(THREAD_SECONDS);
 
@@ -91,16 +93,16 @@ public class Main {
 
                     System.out.println("Processing patient: " + patientName);
 
-                    patientRegister(driver, patientName, patientAge, patientPhone, gender, "Patient Registration");
+                    //patientRegister(driver, patientName, patientAge, patientPhone, gender, "Patient Registration");
                     Thread.sleep(THREAD_SECONDS);
 
-                    createAppointment(driver, patientName, admissionType, doctorName, scanType, "Create Appointment");
+                    //createAppointment(driver, patientName, admissionType, doctorName, scanType, "Create Appointment");
                     Thread.sleep(THREAD_SECONDS);
 
-                    checkingAppoinment(driver, patientName, "View Appointments");
+                    //checkingAppoinment(driver, patientName, "View Appointments");
                     Thread.sleep(THREAD_SECONDS);
 
-                    addPrescription(driver, patientName, "Current Admissions");
+                    //addPrescription(driver, patientName, "Current Admissions");
                     Thread.sleep(THREAD_SECONDS);
 
                     pharmacyBill(driver, patientName, "Pharmacy");
@@ -246,20 +248,6 @@ public class Main {
             driver.switchTo().window(window);
         }
 
-        WebElement cancelButton = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//cr-button[contains(@class, 'cancel-button')]")));
-
-// Click the Cancel button
-        cancelButton.click();
-
-
-        System.out.println("Clicked on Cancel button in Print Window.");
-
-// Wait for the close button to be clickable
-        WebElement closeButton = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//cr-button[contains(@class, 'cancel-button')]")));
-
-// Click the Close button
-        closeButton.click();
-
         System.out.println("Print dialog closed.");
 
         try {
@@ -268,6 +256,19 @@ public class Main {
             throw new RuntimeException(e);
         }
 
+        Robot robot = null;
+        try {
+            robot = new Robot();
+        } catch (AWTException e) {
+            throw new RuntimeException(e);
+        }
+
+
+        Thread.sleep(2000); // Wait for print dialog
+
+        // Press ESC to cancel print
+        robot.keyPress(KeyEvent.VK_ESCAPE);
+        robot.keyRelease(KeyEvent.VK_ESCAPE);
 
     }
 
@@ -279,7 +280,7 @@ public class Main {
 
         try {
 
-            
+
             WebElement patientRow = findAndClickDropdownAndPrescription(patientName, driver, wait);
             if (patientRow != null) {
                 System.out.println("Dropdown clicked successfully.");
@@ -322,7 +323,7 @@ public class Main {
 
             saveCloseButton.click();
 
-            System.out.println("Successfully creaded Prescription");
+            System.out.println("Successfully created Prescription");
 
 
         } catch (Exception e) {
@@ -537,8 +538,8 @@ public class Main {
         while (true) {
             try {
                 // Step 1: Find the row containing the patient name
-                row = wait.until(ExpectedConditions.presenceOfElementLocated(
-                        By.xpath("//td[span[contains(text(),'" + patientName + "')]]/parent::tr")
+                row = wait.until(ExpectedConditions.refreshed(
+                        ExpectedConditions.presenceOfElementLocated(By.xpath("//td[span[contains(text(),'" + patientName + "')]]/parent::tr"))
                 ));
                 System.out.println("Patient row found.");
 
@@ -548,14 +549,20 @@ public class Main {
                 System.out.println("Dropdown icon clicked successfully.");
 
                 // Step 3: Locate and click "Prescription" inside the same row
-                WebElement prescriptionOption = wait.until(ExpectedConditions.presenceOfElementLocated(
-                        By.xpath("//td[span[contains(text(),'" + patientName + "')]]/following-sibling::td//span[contains(text(),'Prescription')]")
+
+                Thread.sleep(1000);
+                WebElement prescriptionOption = wait.until(ExpectedConditions.refreshed(
+                        ExpectedConditions.presenceOfElementLocated(
+                                By.xpath("//td[span[contains(text(),'" + patientName + "')]]/following-sibling::td//span[contains(text(),'Prescription')]")
+                        )
                 ));
                 wait.until(ExpectedConditions.elementToBeClickable(prescriptionOption)).click();
                 System.out.println("Clicked on Prescription option.");
 
                 return row; // Return the WebElement after clicking the dropdown and Prescription
 
+            } catch (StaleElementReferenceException e) {
+                System.out.println("StaleElementReferenceException caught. Retrying...");
             } catch (TimeoutException e) {
                 // Step 4: If patient row is not found, check if there is a next page button
                 List<WebElement> nextPageButton = driver.findElements(By.xpath("//li[@class='ng-star-inserted']/a/span[text()='2']"));
@@ -567,6 +574,8 @@ public class Main {
                     System.out.println("Patient not found on any page.");
                     return null; // Return null if the patient is not found
                 }
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
         }
     }
