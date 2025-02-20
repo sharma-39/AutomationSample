@@ -1,33 +1,31 @@
 package org.example;
 
-import org.openqa.selenium.By;
-import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.TimeoutException;
-import org.openqa.selenium.WebElement;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.List;
+import java.util.Set;
 
 public class Main {
 
-
-    private static final String PATIENT_NAME = "SharmaTest";
-    private static final String PATIENT_AGE = "31";
-    private static final String PATIENT_PH_NO = "9876543212";
-    private static final long WAIT_SECONDS = 30;
     private static final String USER_NAME = "scott";
     private static final String PASS_WORD = "scott";
-    private static final String DR_NAME = "Dr.Abi Sd";
-    private static final String ADMISSION_TYPE = "Out Patient";
     private static final long THREAD_SECONDS = 3000;
+    private static final long WAIT_SECONDS = 45;
 
 
     public static void main(String[] args) throws InterruptedException {
         System.setProperty("webdriver.chrome.driver", "D:\\chromedriver-win64\\chromedriver.exe");
+
 
 
         // Initialize WebDriver
@@ -35,9 +33,6 @@ public class Main {
         driver.get("http://18.215.63.38:8095/#/auth/login");
         driver.manage().window().maximize();
 
-        // Open Google
-
-        // Find the search box and enter a search query
         loggingFunction(driver);
 
         Thread.sleep(THREAD_SECONDS);
@@ -75,80 +70,139 @@ public class Main {
         } while (!isWelcomeFound && attempts < maxAttempts);
 
         if (isWelcomeFound) {
-            patientRegister(driver);
+        try {
+            String jsonData = new String(Files.readAllBytes(Paths.get("D:\\TestingData\\testing_data.json")));
+            JSONArray patients = new JSONArray(jsonData);
 
-            try {
-                Thread.sleep(THREAD_SECONDS);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+
+            for (int i = 19; i < patients.length(); i++) {
+                try {
+                    Thread.sleep(THREAD_SECONDS);
+
+                    JSONObject patient = patients.getJSONObject(i);
+
+                    String patientName = patient.getString("patientName");
+                    String patientAge = patient.getString("patientAge");
+                    String patientPhone = patient.getString("patientPhone");
+                    String doctorName = patient.getString("doctorName");
+                    String admissionType = patient.getString("admissionType");
+                    String gender = patient.getString("gender");
+                    String scanType = patient.getString("scanType");
+
+                    System.out.println("Processing patient: " + patientName);
+
+                    patientRegister(driver, patientName, patientAge, patientPhone, gender, "Patient Registration");
+                    Thread.sleep(THREAD_SECONDS);
+
+                    createAppointment(driver, patientName, admissionType, doctorName, scanType, "Create Appointment");
+                    Thread.sleep(THREAD_SECONDS);
+
+                    checkingAppoinment(driver, patientName, "View Appointments");
+                    Thread.sleep(THREAD_SECONDS);
+
+                    addPrescription(driver, patientName, "Current Admissions");
+                    Thread.sleep(THREAD_SECONDS);
+
+                    pharmacyBill(driver, patientName, "Pharmacy");
+                    Thread.sleep(2000);
+
+                    menuPanalClick(driver, "Dashboard");
+                    Thread.sleep(THREAD_SECONDS);
+
+                } catch (Exception e) {
+                    System.out.println("Error processing patient: " + e.getMessage());
+                    e.printStackTrace();
+                    // Continue to the next patient instead of stopping the loop
+                }
             }
 
-            createAppointment(driver);
-            try {
-                Thread.sleep(THREAD_SECONDS);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
 
-            checkingAppoinment(driver);
-            try {
-                Thread.sleep(THREAD_SECONDS);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            addPrescription(driver);
-            try {
-                Thread.sleep(THREAD_SECONDS);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            pharmacyBill(driver);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+
         }
     }
 
-    private static void pharmacyBill(ChromeDriver driver) throws InterruptedException {
+    private static void patientRegister(ChromeDriver driver, String patientName, String patientAge, String patientPhone, String gender,String panel) {
+
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(WAIT_SECONDS));
+        menuPanalClick(driver,panel);
+
+        WebElement firstNameField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//input[@formcontrolname='firstName']")));
+
+        firstNameField.sendKeys(patientName);
+
+
+        WebElement ageField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//input[@formcontrolname='age']")));
+
+        ageField.sendKeys(patientAge);
+
+
+        WebElement phoneNumberField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//input[@formcontrolname='phoneNumber']")));
+
+        phoneNumberField.sendKeys(patientPhone);
+
+
+        JavascriptExecutor js1 = (JavascriptExecutor) driver;
+        WebElement element = driver.findElement(By.xpath("//input[@formcontrolname='gender' and @value='"+gender+"']"));
+        js1.executeScript("arguments[0].click();", element);
+
+
+        // Step 1: Click the MatSelect dropdown to open the options
+        WebElement matSelect = wait.until(ExpectedConditions.elementToBeClickable(By.id("mat-select-0")));
+        matSelect.click();
+
+        // Step 2: Wait for the options to be visible
+        WebElement cityOption = wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//span[contains(text(), 'Chennai')]")
+        ));
+
+        // Step 3: Click on the option to select it
+        cityOption.click();
+
+        WebElement submitButton = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[contains(text(),'Submit')]")));
+        submitButton.click();
+
+    }
+
+    private static void menuPanalClick(ChromeDriver driver, String panel) {
         try {
             Thread.sleep(THREAD_SECONDS);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        WebElement menuButton = driver.findElement(By.id("mega-menu-nav-btn"));
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        js.executeScript("arguments[0].click();", menuButton);
-
-        System.out.println("Clicked");
-
-
-        // Wait for the "Current Admissions" link to become clickable
-
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(WAIT_SECONDS));
 
-// Wait for the overlay/loader to disappear
+        visibleOrNotMenu(driver);
+
         wait.until(ExpectedConditions.invisibilityOfElementLocated(By.className("page-loader-wrapper")));
 
-        System.out.println("Wait loader complete");
-
-// Now wait for "Create Appointment" link to be clickable
-        WebElement openPharmacyTap = wait.until(
-                ExpectedConditions.elementToBeClickable(By.xpath("//a[contains(text(),' Pharmacy')]"))
+        WebElement panelClick = wait.until(
+                ExpectedConditions.elementToBeClickable(By.xpath("//a[contains(text(),'"+panel+"')]"))
         );
 
-// Click the element
-        openPharmacyTap.click();
+
+        panelClick.click();
+    }
+
+    private static void pharmacyBill(ChromeDriver driver, String patientName,String panel) throws InterruptedException {
+
+        menuPanalClick(driver,panel);
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(WAIT_SECONDS));
 
 
         // Wait for the row containing "SharmaA"
         WebElement row = wait.until(ExpectedConditions.presenceOfElementLocated(
-                By.xpath("//tr[td/span[contains(text(),'" + PATIENT_NAME + "')]]")
+                By.xpath("//tr[td/span[contains(text(),'" + patientName + "')]]")
         ));
 
-// Find the "Bill" button inside the same row
         WebElement billButton = row.findElement(By.xpath(".//button[@title='Bill']"));
 
-// Wait until the button is clickable, then click it
         wait.until(ExpectedConditions.elementToBeClickable(billButton)).click();
 
-        System.out.println("Bill button clicked successfully for patient SharmaA.");
 
         try {
             Thread.sleep(THREAD_SECONDS);
@@ -161,7 +215,7 @@ public class Main {
                 By.xpath("//button[contains(text(),'Generate Bill')]")
         ));
 
-// Wait for the button to be clickable and then click it
+
         wait.until(ExpectedConditions.elementToBeClickable(generateBillButton)).click();
 
         System.out.println("Generate Bill button clicked successfully.");
@@ -186,100 +240,89 @@ public class Main {
         System.out.println("Pay button clicked successfully.");
 
 
-    }
+        // Switch to the print dialog window (if applicable)
+        Set<String> windowHandles = driver.getWindowHandles();
+        for (String window : windowHandles) {
+            driver.switchTo().window(window);
+        }
 
-    private static void addPrescription(ChromeDriver driver) {
+        WebElement cancelButton = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//cr-button[contains(@class, 'cancel-button')]")));
+
+// Click the Cancel button
+        cancelButton.click();
+
+
+        System.out.println("Clicked on Cancel button in Print Window.");
+
+// Wait for the close button to be clickable
+        WebElement closeButton = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//cr-button[contains(@class, 'cancel-button')]")));
+
+// Click the Close button
+        closeButton.click();
+
+        System.out.println("Print dialog closed.");
+
         try {
-            Thread.sleep(THREAD_SECONDS);
+            Thread.sleep(5000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        WebElement menuButton = driver.findElement(By.id("mega-menu-nav-btn"));
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        js.executeScript("arguments[0].click();", menuButton);
-
-        System.out.println("Clicked");
 
 
-        // Wait for the "Current Admissions" link to become clickable
+    }
 
+    private static void addPrescription(ChromeDriver driver, String patientName,String panel) {
+
+
+        menuPanalClick(driver,panel);
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(WAIT_SECONDS));
-
-// Wait for the overlay/loader to disappear
-        wait.until(ExpectedConditions.invisibilityOfElementLocated(By.className("page-loader-wrapper")));
-
-        System.out.println("Wait loader complete");
-
-// Now wait for "Create Appointment" link to be clickable
-        WebElement viewAdmission = wait.until(
-                ExpectedConditions.elementToBeClickable(By.xpath("//a[contains(text(),'Current Admissions')]"))
-        );
-
-// Click the element
-        viewAdmission.click();
-
 
         try {
 
-            WebElement row = wait.until(ExpectedConditions.presenceOfElementLocated(
-                    By.xpath("//td[span[contains(text(),'" + PATIENT_NAME + "')]]/parent::tr")
-            ));
-
-// Step 2: Find and click the dropdown inside this row
-            WebElement dropdownIcon = row.findElement(By.xpath(".//span[contains(@class,'ti-angle-double-down')]"));
-            wait.until(ExpectedConditions.elementToBeClickable(dropdownIcon)).click();
-            System.out.println("Dropdown icon clicked successfully.");
-            Thread.sleep(THREAD_SECONDS); // Ensure dropdown loads
-
-// Step 3: Now locate "Prescription" inside the SAME ROW
-            WebElement prescriptionOption = row.findElement(By.xpath(".//span[contains(text(),'Prescription')]"));
-            wait.until(ExpectedConditions.elementToBeClickable(prescriptionOption)).click();
-            System.out.println("Clicked on 'Prescription' successfully!");
+            
+            WebElement patientRow = findAndClickDropdownAndPrescription(patientName, driver, wait);
+            if (patientRow != null) {
+                System.out.println("Dropdown clicked successfully.");
+            } else {
+                System.out.println("Patient not found.");
+            }
 
             Thread.sleep(THREAD_SECONDS);
             WebElement addButton = wait.until(ExpectedConditions.elementToBeClickable(
                     By.id("current-admission-prescribedAdd")
             ));
             addButton.click();
-            System.out.println("Clicked on 'Add New' button successfully!");
 
 
-            // Locate the input field and type the medicine name
+
             WebElement medicineInput = wait.until(ExpectedConditions.elementToBeClickable(
                     By.xpath("//input[@placeholder='Enter Medicine']")
             ));
             medicineInput.sendKeys("Sulphasala");
 
-// Wait for the autocomplete options to load
             Thread.sleep(THREAD_SECONDS); // Adjust if necessary
 
-// Select the correct option from the dropdown
             WebElement selectedOption = wait.until(ExpectedConditions.elementToBeClickable(
                     By.xpath("//mat-option//span[contains(text(),'Sulphasalazine Tablet  50 50 Tablets')]")
             ));
             selectedOption.click();
 
-            System.out.println("Selected 'Sulphasalazine Tablet 50 50 Tablets' successfully!");
-// Locate the quantity input field using its attributes
+
             WebElement quantityInput = wait.until(ExpectedConditions.elementToBeClickable(
                     By.xpath("//input[@type='number' and @title='Quantity']")
             ));
 
-// Clear any existing value and enter "10"
             quantityInput.clear();
             quantityInput.sendKeys("10");
 
-            System.out.println("Entered quantity: 10");
 
-            // Locate the "Save & Close" button using its class and text
             WebElement saveCloseButton = wait.until(ExpectedConditions.elementToBeClickable(
                     By.xpath("//button[contains(text(), 'Save & Close')]")
             ));
 
-// Click the button
             saveCloseButton.click();
 
-            System.out.println("Clicked 'Save & Close' button successfully.");
+            System.out.println("Successfully creaded Prescription");
 
 
         } catch (Exception e) {
@@ -289,39 +332,35 @@ public class Main {
 
     }
 
-    private static void checkingAppoinment(ChromeDriver driver) throws InterruptedException {
-        System.out.println("Wait over. Proceeding with next steps...");
+    private static void visibleOrNotMenu(ChromeDriver driver) {
 
-        Thread.sleep(THREAD_SECONDS);
         WebElement menuButton = driver.findElement(By.id("mega-menu-nav-btn"));
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        js.executeScript("arguments[0].click();", menuButton);
+        if (menuButton.isDisplayed()) {
+            JavascriptExecutor js = (JavascriptExecutor) driver;
+            js.executeScript("arguments[0].click();", menuButton);
+            System.out.println("Clicked on Menu Button");
+        } else {
+            System.out.println("Menu Button is not visible, skipping click action.");
+        }
+        try {
+            Thread.sleep(THREAD_SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-        System.out.println("Clicked");
+    private static void checkingAppoinment(ChromeDriver driver, String patientName,String panel) throws InterruptedException {
 
-
-        // Wait for the "Current Admissions" link to become clickable
 
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(WAIT_SECONDS));
 
-// Wait for the overlay/loader to disappear
-        wait.until(ExpectedConditions.invisibilityOfElementLocated(By.className("page-loader-wrapper")));
-
-        System.out.println("Wait loader complete");
-
-// Now wait for "Create Appointment" link to be clickable
-        WebElement createAppointmentLink = wait.until(
-                ExpectedConditions.elementToBeClickable(By.xpath("//a[contains(text(),'View Appointments')]"))
-        );
-
-// Click the element
-        createAppointmentLink.click();
+        menuPanalClick(driver,panel);
 
 
         try {
             // Locate the row containing 'SharmaE'
             WebElement row = wait.until(ExpectedConditions.presenceOfElementLocated(
-                    By.xpath("//td[span[contains(text(),'" + PATIENT_NAME + "')]]/parent::tr")
+                    By.xpath("//td[span[contains(text(),'" + patientName + "')]]/parent::tr")
             ));
 
             // Find the "Check In" button in the same row
@@ -330,7 +369,7 @@ public class Main {
             // Wait and Click the button
             wait.until(ExpectedConditions.elementToBeClickable(checkInButton)).click();
 
-            System.out.println("Successfully clicked 'Check In' button for SharmaE.");
+            System.out.println("Successfully Checking Appointment");
         } catch (Exception e) {
             System.out.println("Error: " + e.getMessage());
         }
@@ -338,83 +377,7 @@ public class Main {
 
     }
 
-    private static void patientRegister(ChromeDriver driver) {
 
-        try {
-            Thread.sleep(THREAD_SECONDS);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(WAIT_SECONDS));
-
-        WebElement menuButton = driver.findElement(By.id("mega-menu-nav-btn"));
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        js.executeScript("arguments[0].click();", menuButton);
-
-
-        // Wait for the "Current Admissions" link to become clickable
-
-        WebDriverWait wait1 = new WebDriverWait(driver, Duration.ofSeconds(WAIT_SECONDS));
-
-// Wait for the overlay/loader to disappear
-        wait1.until(ExpectedConditions.invisibilityOfElementLocated(By.className("page-loader-wrapper")));
-
-// Now wait for "Patient Registration" link to be clickable
-        WebElement patientRegistrationLink = wait1.until(
-                ExpectedConditions.elementToBeClickable(By.xpath("//a[contains(text(),'Patient Registration')]"))
-        );
-
-// Click the element
-        patientRegistrationLink.click();
-
-
-        System.out.println("Successfully clicked on 'New Patient loaded'!");
-
-
-        // Wait for the input field to be visible
-        WebDriverWait waitFirstName = new WebDriverWait(driver, Duration.ofSeconds(WAIT_SECONDS));
-        WebElement firstNameField = waitFirstName.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//input[@formcontrolname='firstName']")));
-
-// Fill the input field with a name
-        firstNameField.sendKeys(PATIENT_NAME);
-
-
-        WebElement ageField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//input[@formcontrolname='age']")));
-
-// Fill the input field with a numeric value (e.g., 25)
-        ageField.sendKeys(PATIENT_AGE);
-
-
-        // Wait for the phone number input field to be visible
-        WebElement phoneNumberField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//input[@formcontrolname='phoneNumber']")));
-
-// Fill the input field with a valid phone number (e.g., 9876543210)
-        phoneNumberField.sendKeys(PATIENT_PH_NO);
-
-
-        List<WebElement> genderRadios = driver.findElements(By.xpath("//input[@formcontrolname='gender' and @value='Male']"));
-
-        JavascriptExecutor js1 = (JavascriptExecutor) driver;
-        WebElement element = driver.findElement(By.xpath("//input[@formcontrolname='gender' and @value='Male']"));
-        js1.executeScript("arguments[0].click();", element);
-
-
-        // Step 1: Click the MatSelect dropdown to open the options
-        WebElement matSelect = wait.until(ExpectedConditions.elementToBeClickable(By.id("mat-select-0")));
-        matSelect.click();
-
-        // Step 2: Wait for the options to be visible
-        WebElement cityOption = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//span[contains(text(), 'Chennai')]")
-        ));
-
-        // Step 3: Click on the option to select it
-        cityOption.click();
-
-        WebElement submitButton = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[contains(text(),'Submit')]")));
-        submitButton.click();
-
-    }
 
     private static void locationSelected(ChromeDriver driver) {
         //locations eelct
@@ -428,7 +391,6 @@ public class Main {
         select.selectByVisibleText("Navaur branch");
 
 
-// After the wait, find the dropdown and select the option
 
         WebDriverWait waitSubmit = new WebDriverWait(driver, Duration.ofSeconds(WAIT_SECONDS));
         WebElement proceedButton = waitSubmit.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[text()='Proceed Next']")));
@@ -436,75 +398,58 @@ public class Main {
         proceedButton.click();
     }
 
-    private static void loggingFunction(ChromeDriver driver) {
+    private static void loggingFunction(ChromeDriver driver) throws InterruptedException {
         WebElement usernameField = driver.findElement(By.id("signin-email"));
 
-        // Enter the username
-        usernameField.sendKeys(USER_NAME);
+        typeSlowly(usernameField, USER_NAME, 200);
         WebElement passwordField = driver.findElement(By.id("signin-password"));
-        passwordField.sendKeys(PASS_WORD);
-
-
-        // Submit the login
+        typeSlowly(passwordField, PASS_WORD, 200);
 
         WebElement loginButton = driver.findElement(By.cssSelector("button[type='submit']"));
         loginButton.click();
 
     }
 
-    private static void createAppointment(ChromeDriver driver) throws InterruptedException {
+    private static void createAppointment(ChromeDriver driver, String patientName, String admissionType, String doctorName, String scanType,String panel) throws InterruptedException {
 
-
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(WAIT_SECONDS));
         try {
             Thread.sleep(THREAD_SECONDS);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        WebElement menuButton = driver.findElement(By.id("mega-menu-nav-btn"));
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        js.executeScript("arguments[0].click();", menuButton);
+        try {
+            Thread.sleep(THREAD_SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
 
-        System.out.println("Clicked");
+        menuPanalClick(driver, panel);
 
-
-        // Wait for the "Current Admissions" link to become clickable
-
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(WAIT_SECONDS));
-
-// Wait for the overlay/loader to disappear
-        wait.until(ExpectedConditions.invisibilityOfElementLocated(By.className("page-loader-wrapper")));
-
-        System.out.println("Wait loader complete");
-
-// Now wait for "Create Appointment" link to be clickable
-        WebElement createAppointmentLink = wait.until(
-                ExpectedConditions.elementToBeClickable(By.xpath("//a[contains(text(),'Create Appointment')]"))
-        );
-
-// Click the element
-        createAppointmentLink.click();
-
-
-// Locate the input field
         WebElement patientCodeInput = wait.until(
                 ExpectedConditions.elementToBeClickable(By.name("patientCode"))
         );
+        patientCodeInput.click();
+        Thread.sleep(1000); // Ensure dropdown gets triggered
 
-// Enter text in the input field
-        patientCodeInput.sendKeys(PATIENT_NAME);
+        patientCodeInput.sendKeys(Keys.BACK_SPACE); // Clear previous input
+        Thread.sleep(500);
+        patientCodeInput.sendKeys(patientName);
 
-// Wait for the autocomplete dropdown to appear and select an option
-//        WebElement autocompleteOption = wait.until(
-//                ExpectedConditions.elementToBeClickable(By.xpath("//mat-option//span[contains(text(),'"+PATIENT_NAME+"')]"))
-//        );
-//        autocompleteOption.click();
 
-        List<WebElement> options = wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(By.xpath("//mat-option")));
+        List<WebElement> options = wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(By.xpath("//mat-option")));
+
+        boolean found = false;
         for (WebElement option : options) {
-            if (option.getText().contains(PATIENT_NAME)) {
+            if (option.getText().contains(patientName)) {
                 option.click();
+                found = true;
                 break;
             }
+        }
+
+        if (!found) {
+            System.out.println("Patient name not found in dropdown.");
         }
 
 
@@ -512,26 +457,121 @@ public class Main {
                 By.cssSelector("select[formcontrolname='purpose']")
         ));
 
-        // Select "Out Patient"
         Select select = new Select(purposeDropdown);
-        select.selectByVisibleText(ADMISSION_TYPE);
+        select.selectByVisibleText(admissionType);
 
-        // Verify selection
-        WebElement selectedOption = select.getFirstSelectedOption();
-        System.out.println("Selected Purpose of Visit: " + selectedOption.getText());
+
+
+
+        if(admissionType.equals("Scan"))
+        {
+            WebElement dropdown = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//select[@formcontrolname='scanType']")));
+            Select selectScan = new Select(dropdown);
+            selectScan.selectByVisibleText(scanType);
+        }
 
 
         WebElement selectDoctorId = wait.until(ExpectedConditions.elementToBeClickable(
                 By.cssSelector("select[formcontrolname='doctorId']")
         ));
 
-        // Select "Out Patient"
         Select selectDr = new Select(selectDoctorId);
-        selectDr.selectByVisibleText(DR_NAME);
-        // Optional: Verify selection
+        selectDr.selectByVisibleText(doctorName);
+
 
         WebElement saveButton = driver.findElement(By.id("saveNdCloseAp"));
         saveButton.click();
 
     }
+
+    public static void typeSlowly(WebElement element, String text, int delayMillis) throws InterruptedException {
+        for (char ch : text.toCharArray()) {
+            element.sendKeys(String.valueOf(ch));
+            Thread.sleep(delayMillis);
+        }
+    }
+
+    public boolean isElementVisible(By locator, WebDriver driver) {
+        try {
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+            wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
+            return true;
+        } catch (TimeoutException e) {
+            return false;
+        }
+    }
+    public static WebElement findPatientRowElement(WebDriver driver, WebDriverWait wait, String patientName) {
+        int pageNumber = 1;
+
+        while (true) {
+            try {
+                // Try finding the patient row
+                WebElement row = wait.until(ExpectedConditions.presenceOfElementLocated(
+                        By.xpath("//td[span[contains(text(),'" + patientName + "')]]/parent::tr")
+                ));
+                System.out.println("Patient found on page " + pageNumber);
+                return row; // Return the WebElement if found
+            } catch (TimeoutException e) {
+                // Patient not found on this page, check for the next page
+                WebElement nextPage = null;
+                try {
+                    nextPage = wait.until(ExpectedConditions.elementToBeClickable(
+                            By.xpath("//li[@class='ng-star-inserted']/a[span[text()='" + (pageNumber + 1) + "']]")
+                    ));
+                } catch (TimeoutException ex) {
+                    System.out.println("No more pages available. Patient not found.");
+                    return null; // Patient not found in any page
+                }
+
+                // Click next page and wait for reload
+                nextPage.click();
+                pageNumber++;
+                wait.until(ExpectedConditions.stalenessOf(nextPage)); // Ensure new page loads
+            }
+        }
+    }
+
+    public static WebElement findAndClickDropdownAndPrescription(String patientName, WebDriver driver, WebDriverWait wait) {
+        WebElement row = null;
+
+        while (true) {
+            try {
+                // Step 1: Find the row containing the patient name
+                row = wait.until(ExpectedConditions.presenceOfElementLocated(
+                        By.xpath("//td[span[contains(text(),'" + patientName + "')]]/parent::tr")
+                ));
+                System.out.println("Patient row found.");
+
+                // Step 2: Find and click the dropdown inside this row
+                WebElement dropdownIcon = row.findElement(By.xpath(".//span[contains(@class,'ti-angle-double-down')]"));
+                wait.until(ExpectedConditions.elementToBeClickable(dropdownIcon)).click();
+                System.out.println("Dropdown icon clicked successfully.");
+
+                // Step 3: Locate and click "Prescription" inside the same row
+                WebElement prescriptionOption = wait.until(ExpectedConditions.presenceOfElementLocated(
+                        By.xpath("//td[span[contains(text(),'" + patientName + "')]]/following-sibling::td//span[contains(text(),'Prescription')]")
+                ));
+                wait.until(ExpectedConditions.elementToBeClickable(prescriptionOption)).click();
+                System.out.println("Clicked on Prescription option.");
+
+                return row; // Return the WebElement after clicking the dropdown and Prescription
+
+            } catch (TimeoutException e) {
+                // Step 4: If patient row is not found, check if there is a next page button
+                List<WebElement> nextPageButton = driver.findElements(By.xpath("//li[@class='ng-star-inserted']/a/span[text()='2']"));
+                if (!nextPageButton.isEmpty()) {
+                    System.out.println("Patient not found, navigating to the next page...");
+                    nextPageButton.get(0).click();
+                    wait.until(ExpectedConditions.stalenessOf(nextPageButton.get(0))); // Wait for page to reload
+                } else {
+                    System.out.println("Patient not found on any page.");
+                    return null; // Return null if the patient is not found
+                }
+            }
+        }
+    }
+
+
+
+
 }
