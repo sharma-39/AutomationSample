@@ -93,16 +93,16 @@ public class Main {
 
                     System.out.println("Processing patient: " + patientName);
 
-                    //patientRegister(driver, patientName, patientAge, patientPhone, gender, "Patient Registration");
+                    patientRegister(driver, patientName, patientAge, patientPhone, gender, "Patient Registration");
                     Thread.sleep(THREAD_SECONDS);
 
-                    //createAppointment(driver, patientName, admissionType, doctorName, scanType, "Create Appointment");
+                    createAppointment(driver, patientName, admissionType, doctorName, scanType, "Create Appointment");
                     Thread.sleep(THREAD_SECONDS);
 
-                    //checkingAppoinment(driver, patientName, "View Appointments");
+                    checkingAppoinment(driver, patientName, "View Appointments");
                     Thread.sleep(THREAD_SECONDS);
 
-                    //addPrescription(driver, patientName, "Current Admissions");
+                    addPrescription(driver, patientName, "Current Admissions");
                     Thread.sleep(THREAD_SECONDS);
 
                     pharmacyBill(driver, patientName, "Pharmacy");
@@ -243,12 +243,12 @@ public class Main {
 
 
         // Switch to the print dialog window (if applicable)
-        Set<String> windowHandles = driver.getWindowHandles();
-        for (String window : windowHandles) {
-            driver.switchTo().window(window);
-        }
-
-        System.out.println("Print dialog closed.");
+//        Set<String> windowHandles = driver.getWindowHandles();
+//        for (String window : windowHandles) {
+//            driver.switchTo().window(window);
+//        }
+//
+//        System.out.println("Print dialog closed.");
 
         try {
             Thread.sleep(5000);
@@ -354,6 +354,7 @@ public class Main {
 
 
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(WAIT_SECONDS));
+
 
         menuPanalClick(driver,panel);
 
